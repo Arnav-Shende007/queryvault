@@ -2,18 +2,6 @@
 
 QueryVault is a simplified analytics dashboard for Supabase PostgreSQL built with plain Java 17, the built-in `HttpServer`, JDBC, and a single vanilla HTML frontend.
 
-## Project Structure
-
-```text
-queryvault/
-├── backend/
-│   ├── QueryVaultServer.java
-│   ├── config.txt
-│   └── postgresql.jar
-└── frontend/
-    └── index.html
-```
-
 ## Requirements
 
 - Java 17+
@@ -62,19 +50,3 @@ The default backend URL is:
 http://localhost:8080
 ```
 
-## API
-
-- `GET /api/health`
-- `POST /api/query`
-- `GET /api/tables`
-- `GET /api/tables/{table}/columns`
-- `GET /api/tables/{table}/preview`
-- `GET /api/tables/{table}/count`
-- `GET /api/stats`
-
-## Notes
-
-- CORS headers are included on every response.
-- Table routes validate identifiers before building dynamic SQL.
-- Custom SQL execution uses plain JDBC and returns dynamic JSON based on `ResultSetMetaData`.
-- The SQL runner is powerful by design. Use a read-only database user if you want to prevent writes from the dashboard.
