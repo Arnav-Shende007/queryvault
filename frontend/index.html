@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueryVault Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #080c12;
+      --panel: #0d1117;
+      --panel-2: #111824;
+      --cyan: #00d4ff;
+      --violet: #7c6ef5;
+      --green: #00ff9d;
+      --danger: #ff5b7a;
+      --warning: #ffd166;
+      --text: #eef7ff;
+      --muted: #8ea0b8;
+      --line: rgba(145, 201, 255, 0.16);
+      --glass: rgba(13, 17, 23, 0.76);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(0, 212, 255, 0.18), transparent 28rem),
+        radial-gradient(circle at 80% 8%, rgba(124, 110, 245, 0.2), transparent 24rem),
+        linear-gradient(145deg, #080c12 0%, #0a0f17 45%, #070a10 100%);
+      color: var(--text);
+      font-family: "Space Mono", monospace;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 80%);
+    }
+
+    button, input, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(0, 212, 255, 0.55);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--green);
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.2), inset 0 0 28px rgba(0, 255, 157, 0.06);
+      background: linear-gradient(145deg, rgba(0, 212, 255, 0.12), rgba(124, 110, 245, 0.08));
+      font-weight: 700;
+    }
+
+    h1, h2, h3 {
+      font-family: "Syne", sans-serif;
+      letter-spacing: 0;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 3vw, 3.1rem);
+      line-height: 1;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(13, 17, 23, 0.72);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 18px var(--danger);
+    }
+
+    .status-pill.ok .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 18px var(--green);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.14), rgba(124, 110, 245, 0.16));
+      border: 1px solid rgba(0, 212, 255, 0.28);
+      border-radius: 8px;
+      padding: 10px 14px;
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(0, 255, 157, 0.55);
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.15);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.28), rgba(124, 110, 245, 0.34));
+      border-color: rgba(0, 212, 255, 0.55);
+    }
+
+    .tabs {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.035);
+      margin-bottom: 18px;
+    }
+
+    .tab-btn {
+      border-radius: 6px;
+      padding: 10px 16px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      background: rgba(0, 212, 255, 0.13);
+      box-shadow: inset 0 0 0 1px rgba(0, 212, 255, 0.18);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .sidebar {
+      min-height: 620px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h2, .panel-head h3 {
+      font-size: 1rem;
+    }
+
+    .table-list {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      max-height: 560px;
+      overflow: auto;
+    }
+
+    .table-item {
+      width: 100%;
+      text-align: left;
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      overflow-wrap: anywhere;
+    }
+
+    .table-item:hover, .table-item.active {
+      border-color: rgba(0, 212, 255, 0.35);
+      background: rgba(0, 212, 255, 0.08);
+      box-shadow: 0 0 22px rgba(0, 212, 255, 0.08);
+    }
+
+    .content {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 17px;
+      min-height: 118px;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .stat .value {
+      margin-top: 16px;
+      color: var(--green);
+      font-family: "Syne", sans-serif;
+      font-size: clamp(1.45rem, 2.6vw, 2.4rem);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .chart-box {
+      padding: 16px;
+      min-height: 330px;
+    }
+
+    .chart-box canvas {
+      max-height: 260px;
+    }
+
+    .preview-area {
+      min-height: 320px;
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow: auto;
+      max-height: 460px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(145, 201, 255, 0.1);
+      padding: 11px 12px;
+      text-align: left;
+      vertical-align: top;
+      max-width: 340px;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #101824;
+      color: var(--cyan);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: #dce8f5;
+      font-size: 0.86rem;
+    }
+
+    .cell-null {
+      color: var(--danger);
+      font-style: italic;
+    }
+
+    .cell-number {
+      color: var(--green);
+    }
+
+    .cell-boolean {
+      color: var(--warning);
+    }
+
+    .runner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 18px;
+    }
+
+    .editor {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 230px;
+      resize: vertical;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      outline: none;
+      color: var(--green);
+      background: rgba(2, 6, 12, 0.82);
+      padding: 16px;
+      line-height: 1.6;
+      box-shadow: inset 0 0 35px rgba(0, 212, 255, 0.04);
+    }
+
+    textarea:focus, input:focus {
+      border-color: rgba(0, 255, 157, 0.55);
+      box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.08);
+    }
+
+    .runner-actions, .metrics {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .metric {
+      color: var(--muted);
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .history {
+      padding: 16px;
+      min-height: 400px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 8px;
+      max-height: 520px;
+      overflow: auto;
+      margin-top: 14px;
+    }
+
+    .history-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .empty, .error {
+      color: var(--muted);
+      padding: 20px;
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    .skeleton {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .sk-line {
+      height: 18px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(0,212,255,0.12), rgba(255,255,255,0.04));
+      background-size: 240% 100%;
+      animation: shimmer 1.4s infinite linear;
+    }
+
+    @keyframes shimmer {
+      to { background-position: -240% 0; }
+    }
+
+    .tab-panel {
+      display: none;
+      animation: rise 220ms ease both;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.68);
+      padding: 18px;
+      z-index: 10;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(560px, 100%);
+      padding: 26px;
+      border: 1px solid rgba(0, 212, 255, 0.28);
+      border-radius: 8px;
+      background: rgba(13, 17, 23, 0.94);
+      box-shadow: 0 30px 120px rgba(0, 0, 0, 0.62);
+    }
+
+    .modal-card h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .modal-card p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin: 18px 0;
+    }
+
+    label {
+      color: var(--cyan);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(0, 212, 255, 0.24);
+      border-radius: 8px;
+      outline: none;
+      padding: 12px 13px;
+      color: var(--text);
+      background: rgba(2, 6, 12, 0.75);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(460px, calc(100vw - 36px));
+      padding: 13px 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      background: rgba(13, 17, 23, 0.94);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.error {
+      border-color: rgba(255, 91, 122, 0.5);
+      color: #ffd6de;
+    }
+
+    @media (max-width: 1050px) {
+      .grid, .runner {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        min-height: auto;
+      }
+
+      .table-list {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        max-height: 260px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 20px, 1480px);
+        padding-top: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .toolbar {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .stats, .charts {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        width: 100%;
+      }
+
+      .tab-btn {
+        padding-inline: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">QV</div>
+        <div>
+          <h1>QueryVault</h1>
+          <p class="subtitle">Supabase PostgreSQL analytics console</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div id="statusPill" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></div>
+        <button id="reconnectBtn" class="btn">Reconnect</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Primary tabs">
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="runner">SQL Runner</button>
+    </nav>
+
+    <section id="dashboard" class="tab-panel active">
+      <div class="grid">
+        <aside class="panel sidebar">
+          <div class="panel-head">
+            <h2>Tables</h2>
+            <button id="refreshTablesBtn" class="btn">Refresh</button>
+          </div>
+          <div id="tableList" class="table-list"></div>
+        </aside>
+
+        <main class="content">
+          <section class="stats">
+            <article class="panel stat"><div class="label">Tables</div><div id="statTables" class="value">--</div></article>
+            <article class="panel stat"><div class="label">Rows</div><div id="statRows" class="value">--</div></article>
+            <article class="panel stat"><div class="label">DB Size</div><div id="statSize" class="value">--</div></article>
+            <article class="panel stat"><div class="label">Indexes</div><div id="statIndexes" class="value">--</div></article>
+          </section>
+
+          <section class="charts">
+            <article class="panel chart-box">
+              <div class="panel-head"><h3>Row Counts</h3></div>
+              <canvas id="barChart"></canvas>
+            </article>
+            <article class="panel chart-box">
+              <div class="panel-head"><h3>Distribution</h3></div>
+              <canvas id="doughnutChart"></canvas>
+            </article>
+          </section>
+
+          <section class="panel preview-area">
+            <div class="panel-head">
+              <h3 id="previewTitle">Table Preview</h3>
+              <div id="columnMeta" class="subtitle"></div>
+            </div>
+            <div id="preview"></div>
+          </section>
+        </main>
+      </div>
+    </section>
+
+    <section id="runner" class="tab-panel">
+      <div class="runner">
+        <main class="content">
+          <section class="panel editor">
+            <div class="panel-head">
+              <h2>SQL Runner</h2>
+              <div class="subtitle">Ctrl+Enter executes</div>
+            </div>
+            <textarea id="sqlEditor" spellcheck="false">SELECT * FROM your_table LIMIT 100;</textarea>
+            <div class="runner-actions">
+              <button id="runSqlBtn" class="btn primary">Run Query</button>
+              <button id="exportCsvBtn" class="btn">Export CSV</button>
+              <div class="metrics">
+                <span id="execTime" class="metric">0 ms</span>
+                <span id="rowCount" class="metric">0 rows</span>
+              </div>
+            </div>
+          </section>
+          <section class="panel preview-area">
+            <div class="panel-head"><h3>Results</h3></div>
+            <div id="queryResults"></div>
+          </section>
+        </main>
+
+        <aside class="panel history">
+          <h2>History</h2>
+          <div id="historyList" class="history-list"></div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <div id="connectionModal" class="modal">
+    <div class="modal-card">
+      <h2>Connect QueryVault</h2>
+      <p>Point the dashboard at the Java backend. The backend reads Supabase credentials from <strong>backend/config.txt</strong>.</p>
+      <div class="field">
+        <label for="backendUrl">Backend URL</label>
+        <input id="backendUrl" value="http://localhost:8080" autocomplete="off">
+      </div>
+      <div class="runner-actions">
+        <button id="testConnectionBtn" class="btn primary">Test Connection</button>
+        <button id="closeModalBtn" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const state = {
+      backendUrl: localStorage.getItem("queryvault.backendUrl") || "http://localhost:8080",
+      connected: false,
+      tables: [],
+      tableCounts: [],
+      selectedTable: null,
+      lastRows: [],
+      history: JSON.parse(localStorage.getItem("queryvault.history") || "[]"),
+      charts: { bar: null, doughnut: null }
+    };
+
+    const el = {
+      statusPill: document.getElementById("statusPill"),
+      statusText: document.getElementById("statusText"),
+      reconnectBtn: document.getElementById("reconnectBtn"),
+      modal: document.getElementById("connectionModal"),
+      backendUrl: document.getElementById("backendUrl"),
+      testConnectionBtn: document.getElementById("testConnectionBtn"),
+      closeModalBtn: document.getElementById("closeModalBtn"),
+      tableList: document.getElementById("tableList"),
+      refreshTablesBtn: document.getElementById("refreshTablesBtn"),
+      statTables: document.getElementById("statTables"),
+      statRows: document.getElementById("statRows"),
+      statSize: document.getElementById("statSize"),
+      statIndexes: document.getElementById("statIndexes"),
+      preview: document.getElementById("preview"),
+      previewTitle: document.getElementById("previewTitle"),
+      columnMeta: document.getElementById("columnMeta"),
+      sqlEditor: document.getElementById("sqlEditor"),
+      runSqlBtn: document.getElementById("runSqlBtn"),
+      exportCsvBtn: document.getElementById("exportCsvBtn"),
+      queryResults: document.getElementById("queryResults"),
+      execTime: document.getElementById("execTime"),
+      rowCount: document.getElementById("rowCount"),
+      historyList: document.getElementById("historyList"),
+      toast: document.getElementById("toast")
+    };
+
+    el.backendUrl.value = state.backendUrl;
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(item => item.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(item => item.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    el.reconnectBtn.addEventListener("click", () => openModal());
+    el.closeModalBtn.addEventListener("click", () => closeModal());
+    el.testConnectionBtn.addEventListener("click", testConnection);
+    el.refreshTablesBtn.addEventListener("click", loadDashboard);
+    el.runSqlBtn.addEventListener("click", runSql);
+    el.exportCsvBtn.addEventListener("click", exportCsv);
+    el.sqlEditor.addEventListener("keydown", event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        runSql();
+      }
+    });
+
+    function openModal() {
+      el.backendUrl.value = state.backendUrl;
+      el.modal.classList.remove("hidden");
+    }
+
+    function closeModal() {
+      el.modal.classList.add("hidden");
+    }
+
+    function setConnected(value) {
+      state.connected = value;
+      el.statusPill.classList.toggle("ok", value);
+      el.statusText.textContent = value ? "Connected" : "Disconnected";
+    }
+
+    async function testConnection() {
+      state.backendUrl = normalizeUrl(el.backendUrl.value);
+      localStorage.setItem("queryvault.backendUrl", state.backendUrl);
+      try {
+        const health = await api("/api/health");
+        if (health.status !== "ok") throw new Error("Unexpected health response");
+        setConnected(true);
+        closeModal();
+        toast("Connected to " + state.backendUrl);
+        await loadDashboard();
+      } catch (error) {
+        setConnected(false);
+        toast(error.message, true);
+      }
+    }
+
+    function normalizeUrl(value) {
+      const trimmed = (value || "").trim().replace(/\/+$/, "");
+      return trimmed || "http://localhost:8080";
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(state.backendUrl + path, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+      });
+      const text = await response.text();
+      let payload = null;
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error("Backend returned non-JSON response");
+      }
+      if (!response.ok) {
+        throw new Error(payload.error || "Request failed with HTTP " + response.status);
+      }
+      return payload;
+    }
+
+    async function loadDashboard() {
+      if (!state.connected) return;
+      renderSkeleton(el.tableList, 7);
+      renderSkeleton(el.preview, 8);
+      try {
+        const [stats, tables] = await Promise.all([api("/api/stats"), api("/api/tables")]);
+        renderStats(stats);
+        state.tables = tables.map(row => row.table_name).filter(Boolean);
+        renderTables();
+        await loadTableCounts();
+        renderCharts();
+        if (state.tables.length) {
+          await selectTable(state.selectedTable && state.tables.includes(state.selectedTable) ? state.selectedTable : state.tables[0]);
+        } else {
+          el.preview.innerHTML = '<div class="empty">No public tables found.</div>';
+        }
+      } catch (error) {
+        toast(error.message, true);
+        el.tableList.innerHTML = '<div class="error">Unable to load tables.</div>';
+        el.preview.innerHTML = '<div class="error">Unable to load dashboard.</div>';
+      }
+    }
+
+    function renderStats(stats) {
+      el.statTables.textContent = formatNumber(stats.tableCount);
+      el.statRows.textContent = formatNumber(stats.totalRows);
+      el.statSize.textContent = stats.dbSize || "--";
+      el.statIndexes.textContent = formatNumber(stats.indexCount);
+    }
+
+    function renderTables() {
+      if (!state.tables.length) {
+        el.tableList.innerHTML = '<div class="empty">No tables available.</div>';
+        return;
+      }
+      el.tableList.innerHTML = "";
+      state.tables.forEach(table => {
+        const btn = document.createElement("button");
+        btn.className = "table-item" + (table === state.selectedTable ? " active" : "");
+        btn.textContent = table;
+        btn.addEventListener("click", () => selectTable(table));
+        el.tableList.appendChild(btn);
+      });
+    }
+
+    async function loadTableCounts() {
+      const counts = await Promise.all(state.tables.map(async table => {
+        try {
+          const result = await api("/api/tables/" + encodeURIComponent(table) + "/count");
+          return { table, count: Number(result.count || 0) };
+        } catch {
+          return { table, count: 0 };
+        }
+      }));
+      state.tableCounts = counts.sort((a, b) => b.count - a.count);
+    }
+
+    async function selectTable(table) {
+      state.selectedTable = table;
+      renderTables();
+      el.previewTitle.textContent = table + " Preview";
+      el.columnMeta.textContent = "";
+      renderSkeleton(el.preview, 8);
+      try {
+        const [columns, preview] = await Promise.all([
+          api("/api/tables/" + encodeURIComponent(table) + "/columns"),
+          api("/api/tables/" + encodeURIComponent(table) + "/preview")
+        ]);
+        el.columnMeta.textContent = columns.map(col => col.column_name + ":" + col.data_type).join("  ");
+        state.lastRows = preview.data || [];
+        el.preview.innerHTML = "";
+        el.preview.appendChild(buildTable(state.lastRows));
+      } catch (error) {
+        el.preview.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>';
+      }
+    }
+
+    async function runSql() {
+      const sql = el.sqlEditor.value.trim();
+      if (!sql) {
+        toast("Enter a SQL statement first.", true);
+        return;
+      }
+      renderSkeleton(el.queryResults, 7);
+      el.execTime.textContent = "running";
+      el.rowCount.textContent = "running";
+      try {
+        const result = await api("/api/query", {
+          method: "POST",
+          body: JSON.stringify({ sql })
+        });
+        state.lastRows = result.data || [];
+        el.queryResults.innerHTML = "";
+        el.queryResults.appendChild(buildTable(state.lastRows));
+        el.execTime.textContent = formatNumber(result.executionMs) + " ms";
+        el.rowCount.textContent = formatNumber(result.rowCount) + " rows";
+        addHistory(sql);
+      } catch (error) {
+        el.queryResults.innerHTML = '<div class="error">' + escapeHtml(error.message) + '</div>';
+        el.execTime.textContent = "failed";
+        el.rowCount.textContent = "0 rows";
+        toast(error.message, true);
+      }
+    }
+
+    function buildTable(rows) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "table-wrap";
+      if (!Array.isArray(rows) || rows.length === 0) {
+        wrapper.innerHTML = '<div class="empty">No rows returned.</div>';
+        return wrapper;
+      }
+
+      const columns = Array.from(rows.reduce((set, row) => {
+        Object.keys(row || {}).forEach(key => set.add(key));
+        return set;
+      }, new Set()));
+
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      columns.forEach(column => {
+        const th = document.createElement("th");
+        th.textContent = column;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      const tbody = document.createElement("tbody");
+      rows.forEach(row => {
+        const tr = document.createElement("tr");
+        columns.forEach(column => {
+          const td = document.createElement("td");
+          const value = row ? row[column] : null;
+          td.textContent = value === null || value === undefined ? "null" : String(value);
+          if (value === null || value === undefined) td.className = "cell-null";
+          else if (typeof value === "number") td.className = "cell-number";
+          else if (typeof value === "boolean") td.className = "cell-boolean";
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      wrapper.appendChild(table);
+      return wrapper;
+    }
+
+    function renderCharts() {
+      const labels = state.tableCounts.slice(0, 10).map(item => item.table);
+      const data = state.tableCounts.slice(0, 10).map(item => item.count);
+      const palette = ["#00d4ff", "#7c6ef5", "#00ff9d", "#ffd166", "#ff5b7a", "#8ea0b8", "#35f2ff", "#b08cff", "#5cffc7", "#ff9fb0"];
+
+      if (state.charts.bar) state.charts.bar.destroy();
+      if (state.charts.doughnut) state.charts.doughnut.destroy();
+
+      state.charts.bar = new Chart(document.getElementById("barChart"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Rows", data, backgroundColor: "#00d4ff88", borderColor: "#00d4ff", borderWidth: 1 }] },
+        options: chartOptions(false)
+      });
+
+      state.charts.doughnut = new Chart(document.getElementById("doughnutChart"), {
+        type: "doughnut",
+        data: { labels, datasets: [{ data, backgroundColor: palette, borderColor: "#0d1117", borderWidth: 2 }] },
+        options: chartOptions(true)
+      });
+    }
+
+    function chartOptions(isDoughnut) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: isDoughnut, labels: { color: "#8ea0b8", boxWidth: 12 } }
+        },
+        scales: isDoughnut ? {} : {
+          x: { ticks: { color: "#8ea0b8" }, grid: { color: "rgba(145,201,255,0.08)" } },
+          y: { ticks: { color: "#8ea0b8" }, grid: { color: "rgba(145,201,255,0.08)" } }
+        }
+      };
+    }
+
+    function addHistory(sql) {
+      state.history = [sql, ...state.history.filter(item => item !== sql)].slice(0, 15);
+      localStorage.setItem("queryvault.history", JSON.stringify(state.history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (!state.history.length) {
+        el.historyList.innerHTML = '<div class="empty">No queries yet.</div>';
+        return;
+      }
+      el.historyList.innerHTML = "";
+      state.history.forEach(sql => {
+        const btn = document.createElement("button");
+        btn.className = "history-item";
+        btn.textContent = sql.length > 160 ? sql.slice(0, 160) + "..." : sql;
+        btn.title = sql;
+        btn.addEventListener("click", () => { el.sqlEditor.value = sql; });
+        el.historyList.appendChild(btn);
+      });
+    }
+
+    function exportCsv() {
+      if (!state.lastRows.length) {
+        toast("No rows to export.", true);
+        return;
+      }
+      const columns = Array.from(state.lastRows.reduce((set, row) => {
+        Object.keys(row || {}).forEach(key => set.add(key));
+        return set;
+      }, new Set()));
+      const lines = [
+        columns.map(csvCell).join(","),
+        ...state.lastRows.map(row => columns.map(column => csvCell(row[column])).join(","))
+      ];
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "queryvault-export.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function csvCell(value) {
+      if (value === null || value === undefined) return "";
+      const text = String(value).replaceAll('"', '""');
+      return /[",\n\r]/.test(text) ? '"' + text + '"' : text;
+    }
+
+    function renderSkeleton(target, lines) {
+      target.innerHTML = '<div class="skeleton">' + Array.from({ length: lines }, (_, i) => {
+        const width = 45 + ((i * 17) % 45);
+        return '<div class="sk-line" style="width:' + width + '%"></div>';
+      }).join("") + '</div>';
+    }
+
+    function formatNumber(value) {
+      const number = Number(value || 0);
+      return Number.isFinite(number) ? new Intl.NumberFormat().format(number) : "--";
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    let toastTimer = null;
+    function toast(message, isError = false) {
+      clearTimeout(toastTimer);
+      el.toast.textContent = message;
+      el.toast.classList.toggle("error", isError);
+      el.toast.classList.add("show");
+      toastTimer = setTimeout(() => el.toast.classList.remove("show"), 3600);
+    }
+
+    renderHistory();
+    testConnection();
+  </script>
+</body>
+</html>
