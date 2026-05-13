@@ -47,6 +47,6 @@ Open `queryvault/frontend/index.html` directly in a browser.
 The default backend URL is:
 
 ```text
-http://localhost:8080
+http://localhost:9090
 ```
 
